@@ -17,7 +17,8 @@ npm install @nestjs/common bullmq joi pino pino-pretty
 ## Quick Start
 
 ```typescript
-import { BullMQLoggerModule, BullMQLoggerService } from "@ehildt/nestjs-bullmq-logger";
+import { BullMQLoggerModule } from "@ehildt/nestjs-bullmq-logger";
+import { BullMQLoggerService } from "@ehildt/nestjs-bullmq-logger";
 import { Module } from "@nestjs/common";
 
 @Module({

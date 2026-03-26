@@ -1,26 +1,35 @@
 import { Inject, Injectable, LoggerService } from "@nestjs/common";
 import { Job, JobState } from "bullmq";
-import { Logger } from "pino";
+import pino, { LoggerOptions } from "pino";
 import { format } from "util";
 
-import { BULLMQ_LOGGER } from "../constants/bullmq-logger.constants.ts";
+import { NESTJS_PINO_OPTIONS } from "../constants/bullmq-logger.constants.ts";
 
 const MSG_TEMPLATE = "📦 %s(%s) 🆔 ID-%s 🔄 Attempts-%d %s %s";
 
 @Injectable()
 export class BullMQLoggerService implements LoggerService {
-  constructor(@Inject(BULLMQ_LOGGER) private readonly logger: Logger) {}
+  private logger: pino.Logger | null = null;
+  constructor(@Inject(NESTJS_PINO_OPTIONS) private readonly options: LoggerOptions) {}
+
+  onModuleInit() {
+    this.logger = pino(this.options);
+  }
+
+  get pino() {
+    return this.logger!;
+  }
 
   async log<T = any>(job: Job<T>) {
     const state = await job.getState();
-    this.logger.info(
+    this.logger!.info(
       format(MSG_TEMPLATE, job.queueName, job.name, job.id, job.attemptsMade, this.getStateIcon(state), state),
     );
   }
 
   async error<T = any>(job: Job<T>) {
     const state = await job.getState();
-    this.logger.error({
+    this.logger!.error({
       msg: format(MSG_TEMPLATE, job.queueName, job.name, job.id, job.attemptsMade, this.getStateIcon(state), state),
       failedReason: state === "failed" ? job.failedReason : undefined,
       stacktrace: state === "failed" ? job.stacktrace : undefined,
@@ -29,7 +38,7 @@ export class BullMQLoggerService implements LoggerService {
 
   async warn<T = any>(job: Job<T>) {
     const state = await job.getState();
-    this.logger.warn({
+    this.logger!.warn({
       msg: format(MSG_TEMPLATE, job.queueName, job.name, job.id, job.attemptsMade, this.getStateIcon(state), state),
       queue: job.queueName,
       maxAttempts: job.opts?.attempts,
@@ -42,7 +51,7 @@ export class BullMQLoggerService implements LoggerService {
 
   async debug<T = any>(job: Job<T>) {
     const state = await job.getState();
-    this.logger.debug({
+    this.logger!.debug({
       msg: format(MSG_TEMPLATE, job.queueName, job.name, job.id, job.attemptsMade, this.getStateIcon(state), state),
       queue: job.queueName,
       timestamp: job.timestamp,
@@ -53,7 +62,7 @@ export class BullMQLoggerService implements LoggerService {
 
   async verbose<T = any>(job: Job<T>) {
     const state = await job.getState();
-    this.logger.trace(
+    this.logger!.trace(
       job,
       format(MSG_TEMPLATE, job.queueName, job.name, job.id, job.attemptsMade, this.getStateIcon(state), state),
     );

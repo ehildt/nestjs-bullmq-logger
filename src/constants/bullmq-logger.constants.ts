@@ -1,1 +1,1 @@
-export const BULLMQ_LOGGER = Symbol("BULLMQ_LOGGER");
+export const NESTJS_PINO_OPTIONS = Symbol("NESTJS_PINO_OPTIONS");

@@ -1,18 +1,23 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { Job } from "bullmq";
-import { Logger } from "pino";
+import pino, { Logger } from "pino";
 import { Mocked } from "vitest";
 
-import { BULLMQ_LOGGER } from "../constants/bullmq-logger.constants.ts";
+import { NESTJS_PINO_OPTIONS } from "../constants/bullmq-logger.constants.ts";
 
 import { BullMQLoggerService } from "./bullmq-logger.service.ts";
+
+vi.mock("pino", () => ({
+  default: vi.fn(() => mockLogger),
+}));
 
 const JOB_ATTEMPTS = 15;
 const JOB_DELAY = 0;
 
+let mockLogger: Mocked<Logger>;
+
 describe("BullMQLoggerService", () => {
   let service: BullMQLoggerService;
-  let mockLogger: Mocked<Logger>;
 
   const createMockJob = (state: string): Partial<Job> => ({
     name: "test-job",
@@ -45,13 +50,14 @@ describe("BullMQLoggerService", () => {
       providers: [
         BullMQLoggerService,
         {
-          provide: BULLMQ_LOGGER,
+          provide: NESTJS_PINO_OPTIONS,
           useValue: mockLogger,
         },
       ],
     }).compile();
 
     service = module.get<BullMQLoggerService>(BullMQLoggerService);
+    await service.onModuleInit();
   });
 
   it("should log info in log()", async () => {
@@ -108,5 +114,57 @@ describe("BullMQLoggerService", () => {
     const job = createMockJob("waiting") as Job;
     await service.verbose(job);
     expect(mockLogger.trace).toHaveBeenCalledWith(job, expect.stringContaining("🟡 waiting"));
+  });
+
+  it("should return pino logger via getter", () => {
+    expect(service.pino).toBe(mockLogger);
+  });
+
+  it("should log with prioritized state icon", async () => {
+    const job = createMockJob("prioritized") as Job;
+    await service.log(job);
+    expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining("🔵 prioritized"));
+  });
+
+  it("should log with waiting-children state icon", async () => {
+    const job = createMockJob("waiting-children") as Job;
+    await service.log(job);
+    expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining("🟤 waiting-children"));
+  });
+
+  it("should log with paused state icon", async () => {
+    const job = createMockJob("paused") as Job;
+    await service.log(job);
+    expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining("⭕ paused"));
+  });
+
+  it("should log with stalled state icon", async () => {
+    const job = createMockJob("stalled") as Job;
+    await service.log(job);
+    expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining("🔘 stalled"));
+  });
+
+  it("should log with unknown state icon", async () => {
+    const job = createMockJob("unknown-state" as any) as Job;
+    await service.log(job);
+    expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining("⚪ unknown-state"));
+  });
+
+  it("should log with error state icon", async () => {
+    const job = createMockJob("error" as any) as Job;
+    await service.log(job);
+    expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining("🔴 error"));
+  });
+
+  it("should log error without failedReason when state is not failed", async () => {
+    const job = createMockJob("active") as Job;
+    await service.error(job);
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      expect.objectContaining({
+        msg: expect.stringContaining("🟣 active"),
+        failedReason: undefined,
+        stacktrace: undefined,
+      }),
+    );
   });
 });

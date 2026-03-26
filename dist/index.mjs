@@ -1,5 +1,7 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Module } from '@nestjs/common';
+import pino from 'pino';
 import { format } from 'util';
+import Joi from 'joi';
 
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __decorateClass = (decorators, target, key, kind) => {
@@ -12,13 +14,18 @@ var __decorateClass = (decorators, target, key, kind) => {
 var __decorateParam = (index, decorator) => (target, key) => decorator(target, key, index);
 
 // src/constants/bullmq-logger.constants.ts
-var BULLMQ_LOGGER = /* @__PURE__ */ Symbol("BULLMQ_LOGGER");
-
-// src/service/bullmq-logger.service.ts
+var NESTJS_PINO_OPTIONS = /* @__PURE__ */ Symbol("NESTJS_PINO_OPTIONS");
 var MSG_TEMPLATE = "\u{1F4E6} %s(%s) \u{1F194} ID-%s \u{1F504} Attempts-%d %s %s";
 var BullMQLoggerService = class {
-  constructor(logger) {
-    this.logger = logger;
+  constructor(options) {
+    this.options = options;
+  }
+  logger = null;
+  onModuleInit() {
+    this.logger = pino(this.options);
+  }
+  get pino() {
+    return this.logger;
   }
   async log(job) {
     const state = await job.getState();
@@ -92,7 +99,40 @@ var BullMQLoggerService = class {
 };
 BullMQLoggerService = __decorateClass([
   Injectable(),
-  __decorateParam(0, Inject(BULLMQ_LOGGER))
+  __decorateParam(0, Inject(NESTJS_PINO_OPTIONS))
 ], BullMQLoggerService);
 
-export { BullMQLoggerService };
+// src/module/bullmq-logger.module.ts
+var BullMQLoggerModule = class {
+  static registerAsync(options) {
+    const PinoOptionsProvider = {
+      provide: NESTJS_PINO_OPTIONS,
+      inject: options.inject,
+      useFactory: options.useFactory
+    };
+    return {
+      global: options.global,
+      module: BullMQLoggerModule,
+      exports: [NESTJS_PINO_OPTIONS, BullMQLoggerService],
+      providers: [PinoOptionsProvider, BullMQLoggerService]
+    };
+  }
+};
+BullMQLoggerModule = __decorateClass([
+  Module({})
+], BullMQLoggerModule);
+var BullMQLoggerSchema = Joi.object({
+  level: Joi.string().valid("fatal", "error", "warn", "info", "debug", "trace", "silent").default("info"),
+  base: Joi.string().allow(null).default(null),
+  timestamp: Joi.func().required(),
+  transport: Joi.object({
+    target: Joi.string().valid("pino-pretty").default("pino-pretty"),
+    options: Joi.object({
+      translateTime: Joi.string().default("yyyy-mm-dd HH:MM:ss.l"),
+      colorize: Joi.boolean().default(true),
+      ignore: Joi.string().default("pid,hostname")
+    }).required()
+  }).required()
+});
+
+export { BullMQLoggerModule, BullMQLoggerSchema, BullMQLoggerService, NESTJS_PINO_OPTIONS };
