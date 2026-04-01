@@ -1,6 +1,6 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { Job } from "bullmq";
-import pino, { Logger } from "pino";
+import { Logger } from "pino";
 import { Mocked } from "vitest";
 
 import { NESTJS_PINO_OPTIONS } from "../constants/bullmq-logger.constants.ts";

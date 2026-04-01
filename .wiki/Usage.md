@@ -50,3 +50,21 @@ export class MyProcessor extends WorkerHost {
 ```
 📦 my-queue(process-data) 🆔 ID-123 🔄 Attempts-1 🟢 completed
 ```
+
+## State icons
+
+The logger uses emoji icons to indicate job states:
+
+| State | Icon | Description |
+|-------|------|-------------|
+| completed | 🟢 | Job finished successfully |
+| failed | ⚫ | Job failed |
+| error | 🔴 | Error occurred |
+| delayed | 🟠 | Job is delayed |
+| waiting | 🟡 | Job is waiting |
+| prioritized | 🔵 | Job is prioritized |
+| active | 🟣 | Job is currently processing |
+| waiting-children | 🟤 | Job is waiting for child jobs |
+| paused | ⭕ | Queue is paused |
+| stalled | 🔘 | Job has stalled |
+| unknown | ⚪ | Unknown state |
