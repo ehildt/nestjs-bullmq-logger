@@ -1,7 +1,7 @@
 {
   "name": "@ehildt/nestjs-bullmq-logger",
   "description": "A NestJS logger for BullMQ jobs powered by pino",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "license": "MIT",
   "type": "module",
   "exports": {
