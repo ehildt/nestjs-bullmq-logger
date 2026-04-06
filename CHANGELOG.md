@@ -1,5 +1,11 @@
 # @ehildt/nestjs-bullmq-logger
 
+## 1.2.3
+
+### Patch Changes
+
+- 9ad6fe2: Fixed JobType
+
 ## 1.2.2
 
 ### Patch Changes
