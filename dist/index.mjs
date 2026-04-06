@@ -24,27 +24,47 @@ var BullMQLoggerService = class {
   onModuleInit() {
     this.logger = pino(this.options);
   }
+  /** Returns the underlying pino logger instance. */
   get pino() {
     return this.logger;
   }
-  async log(job) {
+  /** Logs job info with state emoji icon. */
+  async log(job, type) {
     const state = await job.getState();
     this.logger.info(
-      format(MSG_TEMPLATE, job.queueName, job.name, job.id, job.attemptsMade, this.getStateIcon(state), state)
+      format(MSG_TEMPLATE, job.queueName, job.name, job.id, job.attemptsMade, this.getStateIcon(type ?? state), state)
     );
   }
-  async error(job) {
+  /** Logs job error with failedReason and stacktrace when state is failed. */
+  async error(job, type) {
     const state = await job.getState();
     this.logger.error({
-      msg: format(MSG_TEMPLATE, job.queueName, job.name, job.id, job.attemptsMade, this.getStateIcon(state), state),
+      msg: format(
+        MSG_TEMPLATE,
+        job.queueName,
+        job.name,
+        job.id,
+        job.attemptsMade,
+        this.getStateIcon(type ?? state),
+        state
+      ),
       failedReason: state === "failed" ? job.failedReason : void 0,
       stacktrace: state === "failed" ? job.stacktrace : void 0
     });
   }
-  async warn(job) {
+  /** Logs job warning with queue metadata. */
+  async warn(job, type) {
     const state = await job.getState();
     this.logger.warn({
-      msg: format(MSG_TEMPLATE, job.queueName, job.name, job.id, job.attemptsMade, this.getStateIcon(state), state),
+      msg: format(
+        MSG_TEMPLATE,
+        job.queueName,
+        job.name,
+        job.id,
+        job.attemptsMade,
+        this.getStateIcon(type ?? state),
+        state
+      ),
       queue: job.queueName,
       maxAttempts: job.opts?.attempts,
       delay: job.opts?.delay,
@@ -53,23 +73,34 @@ var BullMQLoggerService = class {
       finishedOn: job.finishedOn
     });
   }
-  async debug(job) {
+  /** Logs job debug info with opts and data. */
+  async debug(job, type) {
     const state = await job.getState();
     this.logger.debug({
-      msg: format(MSG_TEMPLATE, job.queueName, job.name, job.id, job.attemptsMade, this.getStateIcon(state), state),
+      msg: format(
+        MSG_TEMPLATE,
+        job.queueName,
+        job.name,
+        job.id,
+        job.attemptsMade,
+        this.getStateIcon(type ?? state),
+        state
+      ),
       queue: job.queueName,
       timestamp: job.timestamp,
       opts: job.opts,
       data: job.data
     });
   }
-  async verbose(job) {
+  /** Logs verbose trace with full job object. */
+  async verbose(job, type) {
     const state = await job.getState();
     this.logger.trace(
       job,
-      format(MSG_TEMPLATE, job.queueName, job.name, job.id, job.attemptsMade, this.getStateIcon(state), state)
+      format(MSG_TEMPLATE, job.queueName, job.name, job.id, job.attemptsMade, this.getStateIcon(type ?? state), state)
     );
   }
+  /** Maps job states to emoji icons for log visualization. */
   getStateIcon(state) {
     switch (state) {
       case "completed":
@@ -89,11 +120,13 @@ var BullMQLoggerService = class {
       case "waiting-children":
         return "\u{1F7E4}";
       case "paused":
-        return "\u2B55";
+        return "\u26AA";
       case "stalled":
         return "\u{1F518}";
+      case "canceled":
+        return "\u2B55";
       default:
-        return "\u26AA";
+        return "\u{1F6AB}";
     }
   }
 };
@@ -104,6 +137,7 @@ BullMQLoggerService = __decorateClass([
 
 // src/module/bullmq-logger.module.ts
 var BullMQLoggerModule = class {
+  /** Registers the module asynchronously with pino logger configuration. */
   static registerAsync(options) {
     const PinoOptionsProvider = {
       provide: NESTJS_PINO_OPTIONS,
