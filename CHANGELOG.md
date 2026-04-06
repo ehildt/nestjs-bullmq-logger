@@ -1,5 +1,11 @@
 # @ehildt/nestjs-bullmq-logger
 
+## 1.2.2
+
+### Patch Changes
+
+- 7d19f50: Updated github workloads
+
 ## 1.2.1
 
 ### Patch Changes
