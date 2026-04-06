@@ -5,6 +5,8 @@ import { format } from "util";
 
 import { NESTJS_PINO_OPTIONS } from "../constants/bullmq-logger.constants.ts";
 
+type JobTypeExtended = JobType | "canceled";
+
 const MSG_TEMPLATE = "📦 %s(%s) 🆔 ID-%s 🔄 Attempts-%d %s %s";
 
 /**
@@ -26,7 +28,7 @@ export class BullMQLoggerService implements LoggerService {
   }
 
   /** Logs job info with state emoji icon. */
-  async log<T = any>(job: Job<T>, type?: JobType) {
+  async log<T = any>(job: Job<T>, type?: JobTypeExtended) {
     const state = await job.getState();
     this.logger!.info(
       format(MSG_TEMPLATE, job.queueName, job.name, job.id, job.attemptsMade, this.getStateIcon(type ?? state), state),
@@ -34,7 +36,7 @@ export class BullMQLoggerService implements LoggerService {
   }
 
   /** Logs job error with failedReason and stacktrace when state is failed. */
-  async error<T = any>(job: Job<T>, type?: JobType) {
+  async error<T = any>(job: Job<T>, type?: JobTypeExtended) {
     const state = await job.getState();
     this.logger!.error({
       msg: format(
@@ -52,7 +54,7 @@ export class BullMQLoggerService implements LoggerService {
   }
 
   /** Logs job warning with queue metadata. */
-  async warn<T = any>(job: Job<T>, type?: JobType) {
+  async warn<T = any>(job: Job<T>, type?: JobTypeExtended) {
     const state = await job.getState();
     this.logger!.warn({
       msg: format(
@@ -74,7 +76,7 @@ export class BullMQLoggerService implements LoggerService {
   }
 
   /** Logs job debug info with opts and data. */
-  async debug<T = any>(job: Job<T>, type?: JobType) {
+  async debug<T = any>(job: Job<T>, type?: JobTypeExtended) {
     const state = await job.getState();
     this.logger!.debug({
       msg: format(
@@ -94,7 +96,7 @@ export class BullMQLoggerService implements LoggerService {
   }
 
   /** Logs verbose trace with full job object. */
-  async verbose<T = any>(job: Job<T>, type?: JobType) {
+  async verbose<T = any>(job: Job<T>, type?: JobTypeExtended) {
     const state = await job.getState();
     this.logger!.trace(
       job,
