@@ -135,7 +135,7 @@ describe("BullMQLoggerService", () => {
   it("should log with paused state icon", async () => {
     const job = createMockJob("paused") as Job;
     await service.log(job);
-    expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining("⭕ paused"));
+    expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining("⚪ paused"));
   });
 
   it("should log with stalled state icon", async () => {
@@ -147,7 +147,13 @@ describe("BullMQLoggerService", () => {
   it("should log with unknown state icon", async () => {
     const job = createMockJob("unknown-state" as any) as Job;
     await service.log(job);
-    expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining("⚪ unknown-state"));
+    expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining("🚫 unknown-state"));
+  });
+
+  it("should log with canceled state icon", async () => {
+    const job = createMockJob("canceled") as Job;
+    await service.log(job);
+    expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining("⭕ canceled"));
   });
 
   it("should log with error state icon", async () => {

@@ -1,6 +1,10 @@
 import Joi from "joi";
 import pino from "pino";
 
+/**
+ * Joi validation schema for pino LoggerOptions.
+ * Validates level, transport, and pino-pretty options.
+ */
 export const BullMQLoggerSchema = Joi.object<pino.LoggerOptions>({
   level: Joi.string().valid("fatal", "error", "warn", "info", "debug", "trace", "silent").default("info"),
   base: Joi.string().allow(null).default(null),

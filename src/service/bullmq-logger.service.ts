@@ -1,5 +1,5 @@
 import { Inject, Injectable, LoggerService } from "@nestjs/common";
-import { Job, JobState } from "bullmq";
+import { Job, JobState, JobType } from "bullmq";
 import pino, { LoggerOptions } from "pino";
 import { format } from "util";
 
@@ -7,6 +7,10 @@ import { NESTJS_PINO_OPTIONS } from "../constants/bullmq-logger.constants.ts";
 
 const MSG_TEMPLATE = "📦 %s(%s) 🆔 ID-%s 🔄 Attempts-%d %s %s";
 
+/**
+ * Logger service for BullMQ jobs using pino.
+ * Provides emoji state indicators for job visualization.
+ */
 @Injectable()
 export class BullMQLoggerService implements LoggerService {
   private logger: pino.Logger | null = null;
@@ -16,30 +20,50 @@ export class BullMQLoggerService implements LoggerService {
     this.logger = pino(this.options);
   }
 
+  /** Returns the underlying pino logger instance. */
   get pino() {
     return this.logger!;
   }
 
-  async log<T = any>(job: Job<T>) {
+  /** Logs job info with state emoji icon. */
+  async log<T = any>(job: Job<T>, type?: JobType) {
     const state = await job.getState();
     this.logger!.info(
-      format(MSG_TEMPLATE, job.queueName, job.name, job.id, job.attemptsMade, this.getStateIcon(state), state),
+      format(MSG_TEMPLATE, job.queueName, job.name, job.id, job.attemptsMade, this.getStateIcon(type ?? state), state),
     );
   }
 
-  async error<T = any>(job: Job<T>) {
+  /** Logs job error with failedReason and stacktrace when state is failed. */
+  async error<T = any>(job: Job<T>, type?: JobType) {
     const state = await job.getState();
     this.logger!.error({
-      msg: format(MSG_TEMPLATE, job.queueName, job.name, job.id, job.attemptsMade, this.getStateIcon(state), state),
+      msg: format(
+        MSG_TEMPLATE,
+        job.queueName,
+        job.name,
+        job.id,
+        job.attemptsMade,
+        this.getStateIcon(type ?? state),
+        state,
+      ),
       failedReason: state === "failed" ? job.failedReason : undefined,
       stacktrace: state === "failed" ? job.stacktrace : undefined,
     });
   }
 
-  async warn<T = any>(job: Job<T>) {
+  /** Logs job warning with queue metadata. */
+  async warn<T = any>(job: Job<T>, type?: JobType) {
     const state = await job.getState();
     this.logger!.warn({
-      msg: format(MSG_TEMPLATE, job.queueName, job.name, job.id, job.attemptsMade, this.getStateIcon(state), state),
+      msg: format(
+        MSG_TEMPLATE,
+        job.queueName,
+        job.name,
+        job.id,
+        job.attemptsMade,
+        this.getStateIcon(type ?? state),
+        state,
+      ),
       queue: job.queueName,
       maxAttempts: job.opts?.attempts,
       delay: job.opts?.delay,
@@ -49,10 +73,19 @@ export class BullMQLoggerService implements LoggerService {
     });
   }
 
-  async debug<T = any>(job: Job<T>) {
+  /** Logs job debug info with opts and data. */
+  async debug<T = any>(job: Job<T>, type?: JobType) {
     const state = await job.getState();
     this.logger!.debug({
-      msg: format(MSG_TEMPLATE, job.queueName, job.name, job.id, job.attemptsMade, this.getStateIcon(state), state),
+      msg: format(
+        MSG_TEMPLATE,
+        job.queueName,
+        job.name,
+        job.id,
+        job.attemptsMade,
+        this.getStateIcon(type ?? state),
+        state,
+      ),
       queue: job.queueName,
       timestamp: job.timestamp,
       opts: job.opts,
@@ -60,14 +93,16 @@ export class BullMQLoggerService implements LoggerService {
     });
   }
 
-  async verbose<T = any>(job: Job<T>) {
+  /** Logs verbose trace with full job object. */
+  async verbose<T = any>(job: Job<T>, type?: JobType) {
     const state = await job.getState();
     this.logger!.trace(
       job,
-      format(MSG_TEMPLATE, job.queueName, job.name, job.id, job.attemptsMade, this.getStateIcon(state), state),
+      format(MSG_TEMPLATE, job.queueName, job.name, job.id, job.attemptsMade, this.getStateIcon(type ?? state), state),
     );
   }
 
+  /** Maps job states to emoji icons for log visualization. */
   private getStateIcon(state: JobState | unknown) {
     switch (state) {
       case "completed":
@@ -87,11 +122,13 @@ export class BullMQLoggerService implements LoggerService {
       case "waiting-children":
         return "🟤";
       case "paused":
-        return "⭕";
+        return "⚪";
       case "stalled":
         return "🔘";
+      case "canceled":
+        return "⭕";
       default:
-        return "⚪";
+        return "🚫";
     }
   }
 }

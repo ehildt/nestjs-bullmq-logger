@@ -12,8 +12,13 @@ type BullMQLoggerModuleProps = {
   useFactory: LoggerConfigFactory;
 };
 
+/**
+ * Dynamic module for registering BullMQ logger with pino options.
+ * Use registerAsync() to configure the logger factory.
+ */
 @Module({})
 export class BullMQLoggerModule {
+  /** Registers the module asynchronously with pino logger configuration. */
   static registerAsync(options: BullMQLoggerModuleProps): DynamicModule {
     const PinoOptionsProvider = {
       provide: NESTJS_PINO_OPTIONS,

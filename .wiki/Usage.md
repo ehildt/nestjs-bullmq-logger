@@ -65,6 +65,7 @@ The logger uses emoji icons to indicate job states:
 | prioritized | 🔵 | Job is prioritized |
 | active | 🟣 | Job is currently processing |
 | waiting-children | 🟤 | Job is waiting for child jobs |
-| paused | ⭕ | Queue is paused |
+| paused | ⚪ | Queue is paused |
 | stalled | 🔘 | Job has stalled |
-| unknown | ⚪ | Unknown state |
+| canceled | ⭕ | Job was canceled |
+| unknown | 🚫 | Unknown state |
