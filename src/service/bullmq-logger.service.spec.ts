@@ -162,8 +162,97 @@ describe("BullMQLoggerService", () => {
     expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining("🔴 error"));
   });
 
-  it("should log error without failedReason when state is not failed", async () => {
-    const job = createMockJob("active") as Job;
+  it("should log with error state when getState is not available", async () => {
+    const job = {
+      name: "test-job",
+      id: "1234",
+      attemptsMade: 1,
+      queueName: "test-queue",
+      timestamp: 123456789,
+      processedOn: undefined,
+      finishedOn: undefined,
+      opts: { attempts: JOB_ATTEMPTS, delay: JOB_DELAY },
+      data: { foo: "bar" },
+      failedReason: undefined,
+      stacktrace: undefined,
+      // getState is not defined
+    } as unknown as Job;
+    await service.log(job);
+    expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining("🔴 error"));
+  });
+
+  it("should log with failed state when getState is not available but failedReason exists", async () => {
+    const job = {
+      name: "test-job",
+      id: "1234",
+      attemptsMade: 1,
+      queueName: "test-queue",
+      timestamp: 123456789,
+      processedOn: undefined,
+      finishedOn: undefined,
+      opts: { attempts: JOB_ATTEMPTS, delay: JOB_DELAY },
+      data: { foo: "bar" },
+      failedReason: "Something went wrong",
+      stacktrace: ["stack line 1"],
+      // getState is not defined
+    } as unknown as Job;
+    await service.log(job);
+    expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining("⚫ failed"));
+  });
+
+  it("should log with completed state when getState is not available but finishedOn exists", async () => {
+    const job = {
+      name: "test-job",
+      id: "1234",
+      attemptsMade: 1,
+      queueName: "test-queue",
+      timestamp: 123456789,
+      processedOn: 123456790,
+      finishedOn: 123456791,
+      opts: { attempts: JOB_ATTEMPTS, delay: JOB_DELAY },
+      data: { foo: "bar" },
+      failedReason: undefined,
+      stacktrace: undefined,
+      // getState is not defined
+    } as unknown as Job;
+    await service.log(job);
+    expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining("🟢 completed"));
+  });
+
+  it("should use provided type parameter when getState is not available", async () => {
+    const job = {
+      name: "test-job",
+      id: "1234",
+      attemptsMade: 1,
+      queueName: "test-queue",
+      timestamp: 123456789,
+      processedOn: undefined,
+      finishedOn: undefined,
+      opts: { attempts: JOB_ATTEMPTS, delay: JOB_DELAY },
+      data: { foo: "bar" },
+      failedReason: undefined,
+      stacktrace: undefined,
+      // getState is not defined
+    } as unknown as Job;
+    await service.log(job, "canceled");
+    expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining("⭕ canceled"));
+  });
+
+  it("should log error without failedReason when fallback state is not failed", async () => {
+    const job = {
+      name: "test-job",
+      id: "1234",
+      attemptsMade: 1,
+      queueName: "test-queue",
+      timestamp: 123456789,
+      processedOn: 123456790,
+      finishedOn: undefined,
+      opts: { attempts: JOB_ATTEMPTS, delay: JOB_DELAY },
+      data: { foo: "bar" },
+      failedReason: undefined,
+      stacktrace: undefined,
+      // getState is not defined - will fallback to "active" state
+    } as unknown as Job;
     await service.error(job);
     expect(mockLogger.error).toHaveBeenCalledWith(
       expect.objectContaining({

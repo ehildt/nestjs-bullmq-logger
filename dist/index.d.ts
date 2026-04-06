@@ -1,7 +1,7 @@
 import { DynamicModule, LoggerService } from '@nestjs/common';
 import pino, { LoggerOptions } from 'pino';
 import Joi from 'joi';
-import { Job, JobType } from 'bullmq';
+import { Job, JobType, JobState } from 'bullmq';
 
 /** Injection token for pino logger options. */
 declare const NESTJS_PINO_OPTIONS: unique symbol;
@@ -27,7 +27,7 @@ declare class BullMQLoggerModule {
  */
 declare const BullMQLoggerSchema: Joi.ObjectSchema<pino.LoggerOptions<never, boolean>>;
 
-type JobTypeExtended = JobType | "canceled";
+type JobTypeExtended = JobType | JobState | "canceled" | "error" | "stalled" | "unknown";
 /**
  * Logger service for BullMQ jobs using pino.
  * Provides emoji state indicators for job visualization.
@@ -49,6 +49,8 @@ declare class BullMQLoggerService implements LoggerService {
     debug<T = any>(job: Job<T>, type?: JobTypeExtended): Promise<void>;
     /** Logs verbose trace with full job object. */
     verbose<T = any>(job: Job<T>, type?: JobTypeExtended): Promise<void>;
+    /** Safely gets job state, handling cases where getState() is not available. */
+    private getJobState;
     /** Maps job states to emoji icons for log visualization. */
     private getStateIcon;
 }

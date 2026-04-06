@@ -30,14 +30,14 @@ var BullMQLoggerService = class {
   }
   /** Logs job info with state emoji icon. */
   async log(job, type) {
-    const state = await job.getState();
+    const state = await this.getJobState(job, type);
     this.logger.info(
       format(MSG_TEMPLATE, job.queueName, job.name, job.id, job.attemptsMade, this.getStateIcon(type ?? state), state)
     );
   }
   /** Logs job error with failedReason and stacktrace when state is failed. */
   async error(job, type) {
-    const state = await job.getState();
+    const state = await this.getJobState(job, type);
     this.logger.error({
       msg: format(
         MSG_TEMPLATE,
@@ -54,7 +54,7 @@ var BullMQLoggerService = class {
   }
   /** Logs job warning with queue metadata. */
   async warn(job, type) {
-    const state = await job.getState();
+    const state = await this.getJobState(job, type);
     this.logger.warn({
       msg: format(
         MSG_TEMPLATE,
@@ -75,7 +75,7 @@ var BullMQLoggerService = class {
   }
   /** Logs job debug info with opts and data. */
   async debug(job, type) {
-    const state = await job.getState();
+    const state = await this.getJobState(job, type);
     this.logger.debug({
       msg: format(
         MSG_TEMPLATE,
@@ -94,11 +94,20 @@ var BullMQLoggerService = class {
   }
   /** Logs verbose trace with full job object. */
   async verbose(job, type) {
-    const state = await job.getState();
+    const state = await this.getJobState(job, type);
     this.logger.trace(
       job,
       format(MSG_TEMPLATE, job.queueName, job.name, job.id, job.attemptsMade, this.getStateIcon(type ?? state), state)
     );
+  }
+  /** Safely gets job state, handling cases where getState() is not available. */
+  async getJobState(job, type) {
+    if (type) return type;
+    if (typeof job.getState === "function") return await job.getState();
+    if (job.failedReason) return "failed";
+    if (job.finishedOn) return "completed";
+    if (job.processedOn) return "active";
+    return "error";
   }
   /** Maps job states to emoji icons for log visualization. */
   getStateIcon(state) {

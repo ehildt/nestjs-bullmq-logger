@@ -5,7 +5,7 @@ import { format } from "util";
 
 import { NESTJS_PINO_OPTIONS } from "../constants/bullmq-logger.constants.ts";
 
-type JobTypeExtended = JobType | "canceled";
+type JobTypeExtended = JobType | JobState | "canceled" | "error" | "stalled" | "unknown";
 
 const MSG_TEMPLATE = "📦 %s(%s) 🆔 ID-%s 🔄 Attempts-%d %s %s";
 
@@ -29,7 +29,7 @@ export class BullMQLoggerService implements LoggerService {
 
   /** Logs job info with state emoji icon. */
   async log<T = any>(job: Job<T>, type?: JobTypeExtended) {
-    const state = await job.getState();
+    const state = await this.getJobState(job, type);
     this.logger!.info(
       format(MSG_TEMPLATE, job.queueName, job.name, job.id, job.attemptsMade, this.getStateIcon(type ?? state), state),
     );
@@ -37,7 +37,7 @@ export class BullMQLoggerService implements LoggerService {
 
   /** Logs job error with failedReason and stacktrace when state is failed. */
   async error<T = any>(job: Job<T>, type?: JobTypeExtended) {
-    const state = await job.getState();
+    const state = await this.getJobState(job, type);
     this.logger!.error({
       msg: format(
         MSG_TEMPLATE,
@@ -55,7 +55,7 @@ export class BullMQLoggerService implements LoggerService {
 
   /** Logs job warning with queue metadata. */
   async warn<T = any>(job: Job<T>, type?: JobTypeExtended) {
-    const state = await job.getState();
+    const state = await this.getJobState(job, type);
     this.logger!.warn({
       msg: format(
         MSG_TEMPLATE,
@@ -77,7 +77,7 @@ export class BullMQLoggerService implements LoggerService {
 
   /** Logs job debug info with opts and data. */
   async debug<T = any>(job: Job<T>, type?: JobTypeExtended) {
-    const state = await job.getState();
+    const state = await this.getJobState(job, type);
     this.logger!.debug({
       msg: format(
         MSG_TEMPLATE,
@@ -97,15 +97,26 @@ export class BullMQLoggerService implements LoggerService {
 
   /** Logs verbose trace with full job object. */
   async verbose<T = any>(job: Job<T>, type?: JobTypeExtended) {
-    const state = await job.getState();
+    const state = await this.getJobState(job, type);
     this.logger!.trace(
       job,
       format(MSG_TEMPLATE, job.queueName, job.name, job.id, job.attemptsMade, this.getStateIcon(type ?? state), state),
     );
   }
 
+  /** Safely gets job state, handling cases where getState() is not available. */
+  private async getJobState<T = any>(job: Job<T>, type?: JobTypeExtended): Promise<JobState | JobTypeExtended> {
+    if (type) return type;
+    if (typeof job.getState === "function") return await job.getState();
+    // Fallback: infer state from job properties
+    if (job.failedReason) return "failed";
+    if (job.finishedOn) return "completed";
+    if (job.processedOn) return "active";
+    return "error";
+  }
+
   /** Maps job states to emoji icons for log visualization. */
-  private getStateIcon(state: JobState | unknown) {
+  private getStateIcon(state: JobState | JobTypeExtended) {
     switch (state) {
       case "completed":
         return "🟢";
